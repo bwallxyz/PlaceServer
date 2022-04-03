@@ -178,8 +178,6 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
     });
 });
 
-let pixelsLastPlaced = {};
-
 wsServer.on('connection', (socket, req) => {
     socket._id = randomUUID().slice(0, 8);
     socket.brand = 'unknown';
@@ -226,7 +224,7 @@ wsServer.on('connection', (socket, req) => {
                 if (lib.checkIncorrectPlace(x, y, color)) return;
                 lib.log(`Pixel placed by ${socket._id}: ${x}, ${y}: ${color}`);
 
-                pixelsLastPlaced[socket._id] = Date.now();
+                socket.lastPlaced = Date.now();
                 appData.pixelsPlaced++;
                 break;
             case 'ping':
@@ -243,7 +241,7 @@ setInterval(() => {
     const threshold = Date.now() - (11 * 60 * 1000);
 
     userCount = Array.from(wsServer.clients).
-        filter(c => c.lastActivity >= threshold).length;
+        filter(c => c.lastPlaced >= threshold).length;
 
     brandUsage = Array.from(wsServer.clients)
         .map((c) => c.brand)
