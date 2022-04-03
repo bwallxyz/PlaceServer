@@ -13,27 +13,35 @@ const upload = multer({ dest: `${__dirname}/uploads/` });
 
 const PORT = process.env.PORT || 3987;
 const COLOR_MAPPINGS = {
+    '#6D001A': 0,
     '#BE0039': 1,
     '#FF4500': 2,
     '#FFA800': 3,
     '#FFD635': 4,
+    '#FFF8B8': 5,
     '#00A368': 6,
     '#00CC78': 7,
     '#7EED56': 8,
     '#00756F': 9,
     '#009EAA': 10,
+    '#00CCC0': 11,
     '#2450A4': 12,
     '#3690EA': 13,
     '#51E9F4': 14,
     '#493AC1': 15,
     '#6A5CFF': 16,
+    '#94B3FF': 17,
     '#811E9F': 18,
     '#B44AC0': 19,
+    '#E4ABFF': 20,
+    '#DE107F': 21,
     '#FF3881': 22,
     '#FF99AA': 23,
     '#6D482F': 24,
     '#9C6926': 25,
+    '#FFB470': 26,
     '#000000': 27,
+    '#515252': 28,
     '#898D90': 29,
     '#D4D7D9': 30,
     '#FFFFFF': 31
@@ -49,7 +57,8 @@ appData = {
     mapHistory: appData?.mapHistory || [
         { file: 'blank.png', reason: 'Init ^Noah', date: 1648890843309 }
     ],
-    orderLength: appData?.orderLength || 0
+    orderLength: appData?.orderLength || 0,
+    pixelsPlaced: appData?.pixelsPlaced || 0
 };
 
 const server = app.listen(PORT);
@@ -75,13 +84,14 @@ app.get('/currentmap', (req, res) => res.redirect(`/maps/${appData.currentMap}`)
 app.get('/currentorders', (req, res) => res.redirect(`/orders/${appData.currentOrders}`));
 
 let recentHistory = lib.getRecentMaps(appData.mapHistory);
-let pixelsPlaced = 0;
 let brandUsage = {};
+let userCount = 0;
 
 app.get('/api/stats', (req, res) => {
     res.json({
-        connectionCount: wsServer.clients.size,
-        pixelsPlaced: pixelsPlaced,
+        activeConnectionCount: userCount,
+        rawConnectionCount: wsServer.clients.size,
+        pixelsPlaced: appData.pixelsPlaced,
         brandUsage: brandUsage,
         date: Date.now()
     });
@@ -110,15 +120,15 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
             return lib.handleUpdateError(req, res, 'An error occured.');
         }
 
-        if (pixels.data.length !== 8000000)
-            return lib.handleUpdateError(req, res, 'The file must be 2000x1000 pixels!');
+        if (pixels.data.length !== 16000000)
+            return lib.handleUpdateError(req, res, 'The file must be 2000x2000 pixels!');
 
         let orders = [];
-        for (var i = 0; i < 2000000; i++) {
+        for (var i = 0; i < 4000000; i++) {
             const a = pixels.data[(i * 4) + 3];
             if (a !== 255) continue;
 
-            const x = i % 1000,
+            const x = i % 2000,
                 y = Math.floor(i / 2000),
                 r = pixels.data[i * 4],
                 g = pixels.data[(i * 4) + 1],
@@ -173,8 +183,9 @@ let pixelsLastPlaced = {};
 wsServer.on('connection', (socket, req) => {
     socket._id = randomUUID().slice(0, 8);
     socket.brand = 'unknown';
+    socket.lastPlaced = Date.now() - (5 * 6 * 1000);
 
-    socket.client_ip = req.headers['CF-Connecting-IP'] || req.headers['X-Forwarded-For'] || req.headers['X-Real-IP'] || req.socket.remoteAddress;
+    socket.client_ip = req.headers['X-Forwarded-For'] || req.headers['X-Real-IP'] || req.socket.remoteAddress;
     socket.client_ua = req.headers['user-agent'] || "missing user-agent";
 
     lib.log(`[+] Client ${socket._id} connected from '${socket.client_ip}' - '${socket.client_ua}'`);
@@ -209,15 +220,14 @@ wsServer.on('connection', (socket, req) => {
                 socket.send(JSON.stringify({ type: 'orders', data: appData.currentOrders, reason: null }));
                 break;
             case 'placepixel':
-                const lastPlaced = pixelsLastPlaced[socket._id] != null ? pixelsLastPlaced[socket._id] : 0;
-                if (Date.now() - lastPlaced <= 5000) break;
+                if (Date.now() - socket.lastPlaced <= (20 * 1000)) break;
 
                 const { x, y, color } = data;
                 if (lib.checkIncorrectPlace(x, y, color)) return;
                 lib.log(`Pixel placed by ${socket._id}: ${x}, ${y}: ${color}`);
 
                 pixelsLastPlaced[socket._id] = Date.now();
-                pixelsPlaced++;
+                appData.pixelsPlaced++;
                 break;
             case 'ping':
                 socket.send(JSON.stringify({ type: 'pong' }));
@@ -230,12 +240,17 @@ wsServer.on('connection', (socket, req) => {
 });
 
 setInterval(() => {
+    const threshold = Date.now() - (11 * 60 * 1000);
+
+    userCount = Array.from(wsServer.clients).
+        filter(c => c.lastActivity >= threshold).length;
+
     brandUsage = Array.from(wsServer.clients)
         .map((c) => c.brand)
         .reduce(function (acc, curr) {
             return acc[curr] ? ++acc[curr] : (acc[curr] = 1), acc;
         }, {});
-}, (2 * 1000));
+}, 1000);
 
 setInterval(() => {
     lib.saveAppdata(appData);

@@ -62,15 +62,15 @@
 <body>
     <div class="card">
         <div class="card-body text-center">
-            <h1 data-statistic="connectionCount" class="odometer large-statistic">0</h1>
-            <h3>Připojení klienti</h3>
+            <h1 data-statistic="activeConnectionCount" class="odometer large-statistic">0</h1>
+            <h3>Aktivní připojení klienti</h3>
             <h4>Položených pixelů: <span data-statistic="pixelsPlaced" class="odometer small-statistic">0</span></h4>
         </div>
     </div>
     
     <div class="card">
         <div class="card-body text-center">
-            <img class="current-map" width="1000" height="500" style="border: 1px solid black;" />
+            <img class="current-map" height="800px" style="border: 1px solid black;" />
             <h3>Aktuální rozkaz <span class="italic">(<a href="/currentmap">PNG</a>, <a href="/currentorders">JSON</a>)</span></h3>
         </div>
     </div>
@@ -98,7 +98,7 @@
             fetch('/api/stats').then(async (res) => {
                 const data = await res.json();
 
-                document.querySelector('[data-statistic=\'connectionCount\']').innerText = data.connectionCount;
+                document.querySelector('[data-statistic=\'activeConnectionCount\']').innerText = data.activeConnectionCount;
                 document.querySelector('[data-statistic=\'pixelsPlaced\']').innerText = data.pixelsPlaced;
             });
         }
@@ -109,7 +109,7 @@
 
                 document.querySelector('.current-map').src = `/maps/${data.currentMap}`;
                 document.querySelector('.map-history').innerHTML = data.mapHistory.map((item) => `<li class="list-group-item">
-                    <img height="250" style="border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" loading="lazy" />
+                    <img height="400px" style="border: 1px solid black;" src="/maps/${escapeHtml(item.file)}" loading="lazy" />
                     <br />
                     ${new Date(item.date).toLocaleString('cs-CZ')}${item?.uploader ? " by " + item.uploader : ""}
                     <br />
