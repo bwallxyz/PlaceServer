@@ -7,6 +7,7 @@ const { randomUUID } = require('crypto');
 
 const app = express();
 const getPixels = require('get-pixels');
+const safeCompare = require('safe-compare');
 
 const multer = require('multer');
 const upload = multer({ dest: `${__dirname}/uploads/` });
@@ -108,7 +109,7 @@ app.get('/api/map', (req, res) => {
 });
 
 app.post('/updateorders', upload.single('image'), async (req, res) => {
-    if (!req.body || !req.body?.password || req.body?.password !== process.env.PASSWORD)
+    if (!req.body || !req.body?.password || !safeCompare(req.body.password, process.env.PASSWORD))
         return lib.handleUpdateError(req, res, 'Incorrect password');
 
     if (!req?.file || req.file?.mimetype !== 'image/png')
@@ -181,7 +182,7 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
 wsServer.on('connection', (socket, req) => {
     socket._id = randomUUID().slice(0, 8);
     socket.brand = 'unknown';
-    socket.lastPlaced = Date.now() - (5 * 6 * 1000);
+    socket.lastPlaced = 0;
 
     socket.client_ip = req.headers['X-Forwarded-For'] || req.headers['X-Real-IP'] || req.socket.remoteAddress;
     socket.client_ua = req.headers['user-agent'] || "missing user-agent";
@@ -238,12 +239,13 @@ wsServer.on('connection', (socket, req) => {
 });
 
 setInterval(() => {
-    const threshold = Date.now() - (11 * 60 * 1000);
+    const threshold = Date.now() - (20 * 60 * 1000);
 
-    userCount = Array.from(wsServer.clients).
-        filter(c => c.lastPlaced >= threshold).length;
+    userCount = Array.from(wsServer.clients)
+        .filter(c => c.lastPlaced >= threshold && c.brand !== 'unknown').length;
 
     brandUsage = Array.from(wsServer.clients)
+        .filter(c => c.lastPlaced >= threshold)
         .map((c) => c.brand)
         .reduce(function (acc, curr) {
             return acc[curr] ? ++acc[curr] : (acc[curr] = 1), acc;
