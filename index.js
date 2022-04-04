@@ -138,7 +138,7 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
             const hex = lib.rgbToHex(r, g, b);
             const color = COLOR_MAPPINGS[hex];
 
-            if (!color)
+            if (color == null)
                 return lib.handleUpdateError(req, res, `A pixel on ${x}, ${y} has a wrong color.<br>R: ${r}, G: ${g}, B: ${b}, A: ${a}`);
 
             orders.push([x, y, color]);
