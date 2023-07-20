@@ -121,11 +121,11 @@ app.post('/updateorders', upload.single('image'), async (req, res) => {
             return lib.handleUpdateError(req, res, 'An error occured.');
         }
 
-        if (pixels.data.length !== 4000000)
-            return lib.handleUpdateError(req, res, 'The file must be 1000x2000 1ixels!');
+        if (pixels.data.length !== 4 * 2000 * 3000)
+            return lib.handleUpdateError(req, res, 'The file must be 2000x3000 1ixels!');
 
         let orders = [];
-        for (var i = 0; i < 1000*1000; i++) {
+        for (var i = 0; i < 2000*3000; i++) {
             const a = pixels.data[(i * 4) + 3];
             if (a !== 255) continue;
 
