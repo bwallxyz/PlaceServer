@@ -56,7 +56,7 @@ appData = {
     currentMap: appData?.currentMap || 'blank.png',
     currentOrders: appData?.currentOrders || 'blank.json',
     mapHistory: appData?.mapHistory || [
-        { file: 'blank.png', reason: 'Init ^Noah', date: 1648890843309 }
+        { file: 'blank.png', reason: 'Init bwall', date: null }
     ],
     orderLength: appData?.orderLength || 0,
     pixelsPlaced: appData?.pixelsPlaced || 0
@@ -222,7 +222,7 @@ wsServer.on('connection', (socket, req) => {
                 if (Date.now() - socket.lastPlaced <= (20 * 1000)) break;
 
                 const { x, y, color } = data;
-                if (lib.checkIncorrectPlace(x, y, color)) return;
+                //if (lib.checkIncorrectPlace(x, y, color)) return;
                 lib.log(`Pixel placed by ${socket._id}: ${x}, ${y}: ${color}`);
 
                 socket.lastPlaced = Date.now();
